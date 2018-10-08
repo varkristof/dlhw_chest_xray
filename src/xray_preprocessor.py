@@ -35,7 +35,7 @@ for index, row in entry.iterrows():
         if os.path.isfile(DATASET_PATH + row['Image_Index']):
             img_src = cv2.imread(DATASET_PATH + row['Image_Index'], cv2.IMREAD_GRAYSCALE)
             train_IN.append(cv2.resize(img_src, (IMG_SIZE, IMG_SIZE)))
-            test_OUT.append(row['Finding_Labels'])
+            train_OUT.append(row['Finding_Labels'])
             train_size -= 1
 
     elif valid_size > 0:
