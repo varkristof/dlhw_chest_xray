@@ -1,6 +1,6 @@
 
 #The downloader script going to download the (compressed) dataset into this folder
-DATASET_PATH = ""
+DATASET_PATH = "res"
 
 #The unzipped dataset is in this folder
 EXT_DATASET_PATH = DATASET_PATH + "\images"
