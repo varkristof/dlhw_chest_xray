@@ -2,7 +2,7 @@ import os
 import pandas as pd
 import cv2
 from sklearn import preprocessing
-import src.config as cfg
+import config as cfg
 
 
 # Load the already processed csv file

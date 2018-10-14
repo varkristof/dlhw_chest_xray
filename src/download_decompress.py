@@ -3,7 +3,7 @@ import io
 import zipfile
 from distutils.dir_util import copy_tree
 import shutil
-import src.config as cfg
+import config as cfg
 
 
 # Extracts the given file recursively
