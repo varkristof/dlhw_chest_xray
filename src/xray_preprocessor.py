@@ -6,7 +6,7 @@ import config as cfg
 
 
 # Load the already processed csv file
-entry = pd.read_csv("Data_Entry.csv")
+entry = pd.read_csv("entry_data_edited.csv")
 
 # Calculate the set sizes
 train_size = cfg.TRAIN_RATE * len(entry)
