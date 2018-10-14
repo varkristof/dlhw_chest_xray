@@ -13,7 +13,7 @@ train_size = cfg.TRAIN_RATE * len(entry)
 valid_size = cfg.VALID_RATE * len(entry)
 test_size = cfg.TEST_RATE * len(entry)
 
-# Inicialize the set inputs and outputs
+# Initialize the set inputs and outputs
 training_IN = []
 valid_IN = []
 test_IN = []
@@ -36,11 +36,11 @@ def readandscale(im_row):
     return preprocessing.minmax_scale(resized)
 
 # Iterates through the rows of the dataframe
-# Rows int he csv file are already mixed
-for index, row in entry.iterrows():
+# Rows in the csv file are already mixed
+for row in entry.iterrows():
 
     # First, it fills the trainingset, than the validation and the testset
-    # If the image exists in the dataset, we scales and resizes it, than we add it to the set's inputs
+    # If the image exists in the dataset, we scale and resize it, then we add it to the set's inputs
     # Outputs are always in the Finding_Labels column
     if train_size > 0:
         if os.path.isfile(cfg.EXT_DATASET_PATH + "\\" + row['Image_Index']):
