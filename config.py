@@ -1,6 +1,6 @@
 
 #The downloader script going to download the (compressed) dataset into this folder
-DATASET_PATH = "E:\chest_dataset\\teszt"
+DATASET_PATH = ""
 
 #The unzipped dataset is in this folder
 EXT_DATASET_PATH = DATASET_PATH + "\images"
