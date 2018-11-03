@@ -3,7 +3,7 @@
 DATASET_PATH = "res"
 
 #The unzipped dataset is in this folder
-EXT_DATASET_PATH = DATASET_PATH + "\images"
+EXT_DATASET_PATH = DATASET_PATH + "/images"
 
 #Path and name of the compressed dataset
 FILENAME = DATASET_PATH + "\data.zip"
