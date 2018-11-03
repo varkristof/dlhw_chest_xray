@@ -16,44 +16,36 @@ train_size = cfg.TRAIN_RATE * len(entry)
 valid_size = cfg.VALID_RATE * len(entry)
 test_size = cfg.TEST_RATE * len(entry)
  # Initialize the set inputs and outputs
-training_IN = []
-valid_IN = []
-test_IN = []
-training_OUT = []
-valid_OUT = []
-test_OUT = []
- # Reads an image form the dataset, converts it to grayscale, resizes it and scales it
+
+samples=np.zeros(len(entry), dtype=[('input', float, (256,256)), ('output', float, 15)])
+
+# Reads an image form the dataset, converts it to grayscale, resizes it and scales it
 def readandscale(im_row):
      # Reads out the name of the picture (Image_Index) and reads the image in grayscale
-    src = cv2.imread(cfg.EXT_DATASET_PATH + "\\" + im_row['Image_Index'], cv2.IMREAD_GRAYSCALE)
+    src = cv2.imread(cfg.EXT_DATASET_PATH + "/" + im_row['Image_Index'], cv2.IMREAD_GRAYSCALE)
      # Resize the image
     resized = cv2.resize(src, (cfg.IMG_SIZE, cfg.IMG_SIZE))
      # Scale the image
-    return preprocessing.minmax_scale(resized)
+    return preprocessing.minmax_scale(np.array(resized, dtype='float64'))
  # Iterates through the rows of the dataframe
 # Rows in the csv file are already mixed
 for index, row in entry.iterrows():
     # First, it fills the trainingset, than the validation and the testset
     # If the image exists in the dataset, we scale and resize it, then we add it to the set's inputs
     # Outputs are always in the Finding_Labels column
-    if train_size > 0:
-        if os.path.isfile(cfg.EXT_DATASET_PATH + "\\" + row['Image_Index']):
-            img_scaled = readandscale(row)
-            training_IN.append(img_scaled)
-            training_OUT.append(row['Finding_Labels'])
-            train_size -= 1
-    elif valid_size > 0:
-        if os.path.isfile(cfg.EXT_DATASET_PATH + "\\" + row['Image_Index']):
-            img_scaled = readandscale(row)
-            valid_IN.append(img_scaled)
-            valid_OUT.append(row['Finding_Labels'])
-            valid_size -= 1
-    elif test_size > 0:
-        if os.path.isfile(cfg.EXT_DATASET_PATH + "\\" + row['Image_Index']):
-            img_scaled = readandscale(row)
-            test_IN.append(img_scaled)
-            test_OUT.append(row['Finding_Labels'])
-            test_size -= 1
+    print(index)
+    if os.path.isfile(cfg.EXT_DATASET_PATH + "/" + row['Image_Index']):
+        img_scaled = readandscale(row)
+        samples[index] = img_scaled, row[6:]
+
+train = samples[0:int(len(entry)*(1-cfg.VALID_RATE-cfg.TEST_RATE))]
+valid = samples[int(len(entry)*(1-cfg.VALID_RATE-cfg.TEST_RATE)):int(len(entry)*(1-cfg.TEST_RATE))]
+test = samples[int(len(entry)*(1-cfg.TEST_RATE)):]
+
+train_x = np.reshape(train['input'], (len(train), 256, 256, 1))
+valid_x = np.reshape(valid['input'], (len(valid), 256, 256, 1))
+test_x = np.reshape(test['input'], (len(test), 256, 256, 1))
+print(train[0])
  #-------------------Model--------------------------
 nb_classes = 15
 # Random seed-ek beállítása
@@ -82,9 +74,9 @@ class TrainingHistory(Callback):
         self.epoch += 1
 history = TrainingHistory()
 model = Sequential()
-model.add(Conv2D(filters=32, kernel_size=(5,5), strides= 1, padding='same', activation='tanh',
-                 input_shape=(256, 256,1)))
-model.add(Conv2D(filters=64, kernel_size=(5,5), strides= 1, padding='same', activation='tanh'))
+model.add(Conv2D(filters=32, kernel_size=(5, 5), strides= 1, padding='same', activation='tanh',
+                 input_shape=(256, 256, 1)))
+model.add(Conv2D(filters=64, kernel_size=(5, 5), strides= 1, padding='same', activation='tanh'))
 model.add(MaxPooling2D(pool_size=(2, 2), strides=(2, 2)))
 model.add(Conv2D(filters=128, kernel_size=(5, 5), strides=1, padding='same', activation='tanh'))
 model.add(MaxPooling2D(pool_size=(2, 2), strides=(2, 2)))
@@ -104,7 +96,7 @@ from keras.callbacks import ReduceLROnPlateau
 reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.8, patience=20, min_lr=10e-5)
 
 
-model.fit(training_IN, training_OUT,
+model.fit(train_x, train['output'],
           # A tanulási folyamat során beállíthatjuk, hogy a tanító adatsorból hány elem kerüljön bele egy-egy
           # batch-be.
           batch_size=20,
@@ -114,7 +106,7 @@ model.fit(training_IN, training_OUT,
           # Értéke lehet 0, 1 és 2
           verbose=1,
           # A tanulással párhuzamosan a validáció is fut.
-          validation_data=(valid_IN, valid_OUT),
+          validation_data=(valid_x, valid['output']),
           # A korábbiakban már tárgyalt tanulást jellemző metrikákat a history nevű változóban szeretnénk tárolni.
           callbacks=[reduce_lr, checkpointer, early_stopping, history],
           # A bemenő adatokat keverje meg a program (alapbeállítás: True).
@@ -132,9 +124,9 @@ plt.show()
 from keras.models import load_model
 model = load_model('weights.hdf5')
 # teszt adatokkal prediktálás
-preds=model.predict(test_IN)
+preds=model.predict(test_x)
 # hiba számítása a teszt adatokon
 from sklearn.metrics import mean_squared_error
-test_mse = mean_squared_error(test_OUT,preds)
+test_mse = mean_squared_error(test['output'], preds)
 print("Test MSE: %f" % (test_mse))
 model.summary()
