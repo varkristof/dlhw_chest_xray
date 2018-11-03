@@ -36,7 +36,7 @@ for index, row in entry.iterrows():
     print(index)
     if os.path.isfile(cfg.EXT_DATASET_PATH + "/" + row['Image_Index']):
         img_scaled = readandscale(row)
-        samples[index] = img_scaled, row[6:]
+        samples[index] = img_scaled, row[7:]
 
 train = samples[0:int(len(entry)*(1-cfg.VALID_RATE-cfg.TEST_RATE))]
 valid = samples[int(len(entry)*(1-cfg.VALID_RATE-cfg.TEST_RATE)):int(len(entry)*(1-cfg.TEST_RATE))]
@@ -45,7 +45,7 @@ test = samples[int(len(entry)*(1-cfg.TEST_RATE)):]
 train_x = np.reshape(train['input'], (len(train), 256, 256, 1))
 valid_x = np.reshape(valid['input'], (len(valid), 256, 256, 1))
 test_x = np.reshape(test['input'], (len(test), 256, 256, 1))
-print(train[0])
+print(train[2])
  #-------------------Model--------------------------
 nb_classes = 15
 # Random seed-ek beállítása
