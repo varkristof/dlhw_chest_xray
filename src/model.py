@@ -12,8 +12,6 @@ from keras.callbacks import Callback
 from tensorflow import set_random_seed
 from keras.models import load_model
 from sklearn.metrics import mean_squared_error
-from sklearn.metrics import confusion_matrix
-import seaborn as sns
 
 
 # Load the already processed csv file
@@ -25,7 +23,7 @@ valid_size = cfg.VALID_RATE * len(entry)
 test_size = cfg.TEST_RATE * len(entry)
 
 # Initialize the set inputs and outputs
-samples=np.zeros(len(entry), dtype=[('input', float, (256,256)), ('output', float, 15)])
+samples = np.zeros(len(entry), dtype=[('input', float, (256,256)), ('output', float, 15)])
 
 
 # Reads an image form the dataset, converts it to grayscale, resizes it and scales it
@@ -48,10 +46,12 @@ for index, row in entry.iterrows():
         img_scaled = readandscale(row)
         samples[index] = img_scaled, row[7:]
 
+# Makes training, validation and test datasets
 train = samples[0:int(len(entry)*(1-cfg.VALID_RATE-cfg.TEST_RATE))]
 valid = samples[int(len(entry)*(1-cfg.VALID_RATE-cfg.TEST_RATE)):int(len(entry)*(1-cfg.TEST_RATE))]
 test = samples[int(len(entry)*(1-cfg.TEST_RATE)):]
 
+# Separates the inputs of the datasets
 train_x = np.reshape(train['input'], (len(train), 256, 256, 1))
 valid_x = np.reshape(valid['input'], (len(valid), 256, 256, 1))
 test_x = np.reshape(test['input'], (len(test), 256, 256, 1))
@@ -59,29 +59,30 @@ print(train[2])
 
  #-------------------Model--------------------------
 
+# Size of the output layer
 nb_classes = 15
 
-# Random seed-ek beállítása
+# Generate random seeds
 np.random.seed(1)
 set_random_seed(2)
 
 
 class TrainingHistory(Callback):
 
-    # Tanulási folyamat elején létrehozunk egy-egy üres listát a kinyerni kívánt metrikák tárolása céljából.
+    # Initializes empty lists for metric storing
     def on_train_begin(self, logs={}):
-        # Hiba mértéke a tanító adatokon.
+        # Error on training data
         self.losses = []
-        # Hiba mértéke a validációs adatokon.
+        # Error on validation data
         self.valid_losses = []
-        # A modell jóságát, pontosságát mérő mutatószám a tanító adatokon.
+        # Stores how good is the model (on training data)
         self.accs = []
-        # A modell jóságát, pontosságát mérő mutatószám a validációs adatokon.
+        # Stores how good is the model (on validation data)
         self.valid_accs = []
-        # A tanítási fázisok sorszámozása.
+        # Number of epochs
         self.epoch = 0
 
-    # Minden egyes tanítási fázis végén mentsük el, hogy hogyan teljesít aktuálisan a háló.
+    # At the end of an epoch, save the performance of the actual network
     def on_epoch_end(self, epoch, logs={}):
         self.losses.append(logs.get('loss'))
         self.valid_losses.append(logs.get('val_loss'))
@@ -89,7 +90,7 @@ class TrainingHistory(Callback):
         self.valid_accs.append(logs.get('val_acc'))
         self.epoch += 1
 
-
+# Implements the network
 history = TrainingHistory()
 model = Sequential()
 model.add(Conv2D(filters=32, kernel_size=(5, 5), strides= 1, padding='same', activation='tanh',
@@ -103,57 +104,53 @@ model.add(Dense(128, activation='tanh'))
 model.add(Dense(nb_classes, activation='softmax'))
 model.compile(loss='categorical_crossentropy', optimizer=SGD(lr=0.001), metrics=['accuracy'])
 
-# Early stopping, amellyel figyeljük a validációs hibát (alap beállítás)
+
+# Configure early stopping
 from keras.callbacks import EarlyStopping
-patience=10
-early_stopping=EarlyStopping(patience=patience, verbose=1)
+patience = 10
+early_stopping = EarlyStopping(patience=patience, verbose=1)
 
-# Szintén a validációs hibát figyeljük, és elmentjük a legjobb modellt
+# Saves the best model (using validation error)
 from keras.callbacks import ModelCheckpoint
-checkpointer=ModelCheckpoint(filepath='weights.hdf5', save_best_only=True, verbose=1)
+checkpointer = ModelCheckpoint(filepath='weights.hdf5', save_best_only=True, verbose=1)
 
-# a tanulálsi ráta (lr, learning rate) automatikus csökkentésére szolgáló függvény
+# Reduces learning rate automatically
 from keras.callbacks import ReduceLROnPlateau
 reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.8, patience=20, min_lr=10e-5)
 
 
 model.fit(train_x, train['output'],
-          # A tanulási folyamat során beállíthatjuk, hogy a tanító adatsorból hány elem kerüljön bele egy-egy
-          # batch-be.
+          # Size of our batch
           batch_size=20,
-          # Tanulási fázisok száma.
+          # Number of epochs
           nb_epoch=100,
-          # Verbose paraméter a tanulás során közli azokat az információkat, amelyek mi szeretnénk kinyerni.
-          # Értéke lehet 0, 1 és 2
+          # Verbose parameter
           verbose=1,
-          # A tanulással párhuzamosan a validáció is fut.
+          # Validation runs in parallel with training
           validation_data=(valid_x, valid['output']),
-          # A korábbiakban már tárgyalt tanulást jellemző metrikákat a history nevű változóban szeretnénk tárolni.
+          # Save important metrics in 'history'
           callbacks=[reduce_lr, checkpointer, early_stopping, history],
-          # A bemenő adatokat keverje meg a program (alapbeállítás: True).
+          # Shuffle input data
           shuffle=True)
 
+
 plt.figure(figsize=(10, 5))
-plt.title('Hiba mértéke')
-plt.plot(np.arange(history.epoch), history.losses, color ='g', label='Hiba mértéke a tanító adatokon')
-plt.plot(np.arange(history.epoch), history.valid_losses, color ='b', label='Hiba mértéke a validációs adatokon')
+plt.title('Measure of error')
+plt.plot(np.arange(history.epoch), history.losses, color ='g', label='Measure of error on training data')
+plt.plot(np.arange(history.epoch), history.valid_losses, color ='b', label='sure of error on validation data')
 plt.legend(loc='upper right')
-plt.xlabel('Tanulási iterációk száma')
+plt.xlabel('Number of training iterations')
 plt.ylabel('y')
 plt.grid(True)
 plt.show()
 
-# a legjobb modell visszatöltése
+# Load the best model
 model = load_model('weights.hdf5')
 
-# teszt adatokkal prediktálás
-preds=model.predict(test_x)
+# Predicating with test data
+preds = model.predict(test_x)
 
-# hiba számítása a teszt adatokon
+# Calculating the error on test data
 test_mse = mean_squared_error(test['output'], preds)
 print("Test MSE: %f" % (test_mse))
 model.summary()
-
-conf = confusion_matrix(test['output'], np.argmax(preds, axis=1))
-sns.set()
-sns.heatmap(conf)
