@@ -26,16 +26,32 @@ df.drop(df[df['Patient_Age'] > 120].index, inplace=True)
 filter = df['Finding_Labels'].str.contains("\|")
 df = df[~filter]
 
+#Delete rows where categories are not in the four class 
+df_temp = df
+filter = df['Finding_Labels'].str.contains("Atelectasis|Infiltration|Pneumothorax|Edema|"
+                                           "Emphysema|Fibrosis|Effusion|Pneumonia|Nodule|"
+                                           "Mass|Hernia|No Finding")
+df = df[~filter]
+
+#Get 1465 random rows where category is No Finding
+df_temp = df_temp.drop(df_temp[df_temp['Finding_Labels'] != "No Finding"].index)
+df_temp = shuffle(df_temp)
+df_temp = df_temp.head(1465)
+
+#Concatenate the two dataframe
+frames = [df, df_temp]
+dataFrame = pandas.concat(frames)
+
 
 #Make one-hot encoding
-df = pandas.get_dummies(df, columns=["Finding_Labels"])
+dataFrame = pandas.get_dummies(dataFrame, columns=["Finding_Labels"])
 
 #Shuffle the rows randomly
-df = shuffle(df)
+dataFrame = shuffle(dataFrame)
 
 
 #Extract dataframe to a csv
-df.to_csv('entry_data_edited.csv')
+dataFrame.to_csv('entry_data_edited.csv')
 #Just for printing out the dataframe
 pandas.set_option("max_columns", None)
-print(df)
+print(dataFrame)
