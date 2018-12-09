@@ -20,7 +20,7 @@ from tensorflow import set_random_seed
 train_data = pd.read_csv("train2.csv")
 valid_data = pd.read_csv("valid2.csv")
 
-INPUT_PATH = cfg.EXT_DATASET_PATH
+INPUT_PATH = cfg.DATASET_PATH + "/"
 TRAIN_RATE = cfg.TRAIN_RATE
 VALID_RATE = cfg.VALID_RATE
 TEST_RATE = cfg.TEST_RATE
